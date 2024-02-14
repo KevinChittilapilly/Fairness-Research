@@ -1,0 +1,8 @@
+{
+  "python.pythonPath": "C:Usersckevianaconda3python.exe",
+
+  "python.terminal.activateEnvironment": true,
+  "terminal.integrated.inheritEnv": false,
+
+  "terminal.integrated.shell.windows": "C:\\Windows\\System32\\cmd.exe"
+}
