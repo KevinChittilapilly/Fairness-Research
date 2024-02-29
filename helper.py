@@ -14,6 +14,12 @@ from sklearn.metrics import confusion_matrix
 from mlxtend.frequent_patterns import apriori, association_rules
 import pandas as pd
 from scipy.stats import chi2_contingency
+import pandas as pd
+import numpy as np
+from scipy.stats import entropy, kurtosis, skew
+from sklearn.decomposition import PCA
+from sklearn.preprocessing import StandardScaler
+from sklearn.impute import SimpleImputer
 
 def preprocessData(df,isCleanData=False):
     # Define a dictionary where the keys are column names and the values are the mappings for that column
@@ -222,6 +228,7 @@ def calculateParityusingLR(df):
 
     print(age_above_thres)
     print("----------------------------------------")
+    return abs(age_above_thres-age_below_thes)
 
 
 def createSamples(df):
@@ -274,4 +281,72 @@ def getStatsfromData(sampled_dfs):
                 age_above_thres,prop_above_thres,
                 prop_below_thes,
                 total_rows]
+def compute_advanced_metafeatures(dataframe, numeric_cols, categorical_cols):
     
+    metafeatures = {}
+
+    # Extract specified numeric and categorical columns
+    numeric_data = dataframe[numeric_cols]
+    categorical_data = dataframe[categorical_cols]
+
+    # Basic Metafeatures
+    metafeatures['num_instances'] = len(dataframe)
+    metafeatures['num_features'] = len(numeric_cols) + len(categorical_cols)
+    metafeatures['num_missing_values'] = dataframe.isnull().sum().sum()
+    metafeatures['num_numeric_features'] = numeric_data.shape[1]
+    metafeatures['num_categorical_features'] = categorical_data.shape[1]
+
+    # Numerical Features' Metafeatures
+    if not numeric_data.empty:
+        imputer = SimpleImputer(strategy='mean')
+        numeric_cols_imputed = imputer.fit_transform(numeric_data)
+        metafeatures['mean_skewness'] = skew(numeric_cols_imputed).mean()
+        metafeatures['mean_kurtosis'] = kurtosis(numeric_cols_imputed).mean()
+
+        # PCA Components for 95% variance
+        scaler = StandardScaler()
+        numeric_scaled = scaler.fit_transform(numeric_cols_imputed)
+        pca = PCA(n_components=0.95)
+        pca.fit(numeric_scaled)
+        metafeatures['pca_components_95_var'] = pca.n_components_
+
+    # Categorical Features' Metafeatures
+    if not categorical_data.empty:
+        metafeatures['min_categories'] = categorical_data.apply(lambda x: x.nunique()).min()
+        metafeatures['max_categories'] = categorical_data.apply(lambda x: x.nunique()).max()
+        metafeatures['mean_categories'] = categorical_data.apply(lambda x: x.nunique()).mean()
+
+        # Entropy of categorical features
+        entropy_values = []
+        for col in categorical_data:
+            value_counts = categorical_data[col].value_counts(normalize=True, dropna=True)
+            entropy_values.append(entropy(value_counts))
+        metafeatures['mean_entropy'] = np.mean(entropy_values)
+
+    return metafeatures   
+def createMetaFeaturesDataframe(dfs):
+    metafeatures_df = pd.DataFrame()
+    metafeatures_list = []
+    for df in dfs:
+        df = df.drop('target',axis=1)
+        numeric_columns = ['Duration']
+        categorical_columns = ['Checking-Account','Credit-history', 'Purpose',
+            'Credit-amount', 'Savings-account', 'Present-employment',
+            'Installment-rate', 'Status/sex', 'Other-debtors', 'Present-residence',
+            'Property', 'Age', 'Other-installment', 'Housing', 'Existing-credits',
+            'Job', 'liable', 'Telephone', 'Foreign-worker']
+        metafeatures = compute_advanced_metafeatures(df, numeric_columns, categorical_columns)
+        metafeatures_list.append(metafeatures)
+    metafeatures_df = pd.DataFrame(metafeatures_list)
+    chi_squared_results = []
+    for sample_df in dfs:
+        contingency_table = pd.crosstab(sample_df['target'],sample_df['Age'])
+        chi2, p, _, _ = chi2_contingency(contingency_table)
+        chi_squared_results.append(chi2)
+    metafeatures_df['correlation'] = chi_squared_results
+    parity_values = []
+    for df in dfs:
+        parity_values.append(calculateParityusingLR(df))
+    metafeatures_df['target'] = parity_values
+    metafeatures_df.fillna(metafeatures_df.mean(), inplace=True)
+    return metafeatures_df
