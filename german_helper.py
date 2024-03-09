@@ -205,9 +205,9 @@ def calculateParityusingKNN(df):
         print(age_above_thres)
         print("----------------------------------------")
 
-def calculateParityusingLR(df):
-    X = df.drop('target', axis=1)
-    y = df['target']
+def calculateParityusingLR(df,target_attr,sensitive_attr):
+    X = df.drop(target_attr, axis=1)
+    y = df[target_attr]
 
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
     logreg = LogisticRegression(max_iter=1000)
@@ -220,11 +220,11 @@ def calculateParityusingLR(df):
     X_test['prob_1'] = first_values
     X_test['prob_2'] = second_values
 
-    age_below_thes= X_test.loc[X_test['Age'] == 1 , 'prob_1'].mean()
+    age_below_thes= X_test.loc[X_test[sensitive_attr] == 1 , 'prob_1'].mean()
 
     print(age_below_thes)
 
-    age_above_thres= X_test.loc[X_test['Age'] == 2, 'prob_1'].mean()
+    age_above_thres= X_test.loc[X_test[sensitive_attr] == 2, 'prob_1'].mean()
 
     print(age_above_thres)
     print("----------------------------------------")
@@ -324,29 +324,31 @@ def compute_advanced_metafeatures(dataframe, numeric_cols, categorical_cols):
         metafeatures['mean_entropy'] = np.mean(entropy_values)
 
     return metafeatures   
-def createMetaFeaturesDataframe(dfs):
+
+
+def createMetaFeaturesDataframe(dfs,categorical_cols,numeric_columns,target_attr,sensitive_attr):
     metafeatures_df = pd.DataFrame()
     metafeatures_list = []
     for df in dfs:
-        df = df.drop('target',axis=1)
-        numeric_columns = ['Duration']
-        categorical_columns = ['Checking-Account','Credit-history', 'Purpose',
-            'Credit-amount', 'Savings-account', 'Present-employment',
-            'Installment-rate', 'Status/sex', 'Other-debtors', 'Present-residence',
-            'Property', 'Age', 'Other-installment', 'Housing', 'Existing-credits',
-            'Job', 'liable', 'Telephone', 'Foreign-worker']
-        metafeatures = compute_advanced_metafeatures(df, numeric_columns, categorical_columns)
+        df = df.drop(target_attr,axis=1)
+        # numeric_columns = ['Duration']
+        # categorical_columns = ['Checking-Account','Credit-history', 'Purpose',
+        #     'Credit-amount', 'Savings-account', 'Present-employment',
+        #     'Installment-rate', 'Status/sex', 'Other-debtors', 'Present-residence',
+        #     'Property', 'Age', 'Other-installment', 'Housing', 'Existing-credits',
+        #     'Job', 'liable', 'Telephone', 'Foreign-worker']
+        metafeatures = compute_advanced_metafeatures(df, numeric_columns, categorical_cols)
         metafeatures_list.append(metafeatures)
     metafeatures_df = pd.DataFrame(metafeatures_list)
     chi_squared_results = []
     for sample_df in dfs:
-        contingency_table = pd.crosstab(sample_df['target'],sample_df['Age'])
+        contingency_table = pd.crosstab(sample_df[target_attr],sample_df[sensitive_attr])
         chi2, p, _, _ = chi2_contingency(contingency_table)
         chi_squared_results.append(chi2)
     metafeatures_df['correlation'] = chi_squared_results
     parity_values = []
     for df in dfs:
-        parity_values.append(calculateParityusingLR(df))
+        parity_values.append(calculateParityusingLR(df,target_attr=target_attr,sensitive_attr=sensitive_attr))
     metafeatures_df['target'] = parity_values
     metafeatures_df.fillna(metafeatures_df.mean(), inplace=True)
     return metafeatures_df
