@@ -222,12 +222,12 @@ def calculateParityusingLR(df,target_attr,sensitive_attr):
 
     age_below_thes= X_test.loc[X_test[sensitive_attr] == 1 , 'prob_1'].mean()
 
-    print(age_below_thes)
+    # print(age_below_thes)
 
     age_above_thres= X_test.loc[X_test[sensitive_attr] == 2, 'prob_1'].mean()
 
-    print(age_above_thres)
-    print("----------------------------------------")
+    # print(age_above_thres)
+    # print("----------------------------------------")
     return abs(age_above_thres-age_below_thes)
 
 
@@ -240,47 +240,47 @@ def createSamples(df):
         sampled_dfs.append(sampled_df)
     return sampled_dfs
     
-def getStatsfromData(sampled_dfs):
+def getStatsfromData(sample_df,target_attr = 'target',sensitive_attr = 'Age'):
     id=1
     parity = []
     age_below_thes=[]
     age_above_thres=[]
     prop_above_thres=[]
     prop_below_thes=[]
-    for sample_df in sampled_dfs:
-        X = sample_df.drop('target', axis=1)
-        y = sample_df['target']
+    # for sample_df in sampled_dfs:
+    X = sample_df.drop(target_attr, axis=1)
+    y = sample_df[target_attr]
 
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-        logreg = LogisticRegression(max_iter=1000)
-        logreg.fit(X_train, y_train)
-        y_pred = logreg.predict(X_test)
-        y_pred_prob = logreg.predict_proba(X_test)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+    logreg = LogisticRegression(max_iter=1000)
+    logreg.fit(X_train, y_train)
+    y_pred = logreg.predict(X_test)
+    y_pred_prob = logreg.predict_proba(X_test)
 
-        first_values = [row[0] for row in y_pred_prob]
-        second_values = [row[1] for row in y_pred_prob]
-        X_test['prob_1'] = first_values
-        X_test['prob_2'] = second_values
-        age_below_thes.append(X_test.loc[X_test['Age'] == 1 , 'prob_1'].mean())
-        # print(age_below_thes)
+    first_values = [row[0] for row in y_pred_prob]
+    second_values = [row[1] for row in y_pred_prob]
+    X_test['prob_1'] = first_values
+    X_test['prob_2'] = second_values
+    age_below_thes.append(X_test.loc[X_test[sensitive_attr] == 1 , 'prob_1'].mean())
+    # print(age_below_thes)
 
-        age_above_thres.append(X_test.loc[X_test['Age'] == 2, 'prob_1'].mean())
-        parity_diff = abs(X_test.loc[X_test['Age'] == 2, 'prob_1'].mean() - X_test.loc[X_test['Age'] == 1, 'prob_1'].mean())
-        print(parity_diff)
-        parity.append(parity_diff)
-        id+=1
+    age_above_thres.append(X_test.loc[X_test[sensitive_attr] == 2, 'prob_1'].mean())
+    parity_diff = abs(X_test.loc[X_test[sensitive_attr] == 2, 'prob_1'].mean() - X_test.loc[X_test[sensitive_attr] == 1, 'prob_1'].mean())
+    # print(parity_diff)
+    parity.append(parity_diff)
+    id+=1
 
-        total_age = sample_df['Age'].value_counts()[1] + sample_df['Age'].value_counts()[2]
-        prop_above_thres.append( sample_df['Age'].value_counts()[2]/total_age)
-        prop_below_thes.append(sample_df['Age'].value_counts()[1]/total_age)
-        filtered_rows = sample_df[(sample_df['Age'] == 1) & (sample_df['target'] == 1)]
-        total_rows = len(filtered_rows)
-        filtered_rows = sample_df[(sample_df['Age'] == 2) & (sample_df['target'] == 1)]
-        total_rows = len(filtered_rows)
-        return [age_below_thes,
-                age_above_thres,prop_above_thres,
-                prop_below_thes,
-                total_rows]
+    total_age = sample_df[sensitive_attr].value_counts()[1] + sample_df[sensitive_attr].value_counts()[2]
+    prop_above_thres.append( sample_df[sensitive_attr].value_counts()[2]/total_age)
+    prop_below_thes.append(sample_df[sensitive_attr].value_counts()[1]/total_age)
+    filtered_rows = sample_df[(sample_df[sensitive_attr] == 1) & (sample_df[target_attr] == 1)]
+    total_rows = len(filtered_rows)
+    filtered_rows = sample_df[(sample_df[sensitive_attr] == 2) & (sample_df[target_attr] == 1)]
+    total_rows = len(filtered_rows)
+    return [age_below_thes,
+            age_above_thres,prop_above_thres,
+            prop_below_thes,
+            total_rows]
 def compute_advanced_metafeatures(dataframe, numeric_cols, categorical_cols):
     
     metafeatures = {}
@@ -290,11 +290,11 @@ def compute_advanced_metafeatures(dataframe, numeric_cols, categorical_cols):
     categorical_data = dataframe[categorical_cols]
 
     # Basic Metafeatures
-    metafeatures['num_instances'] = len(dataframe)
-    metafeatures['num_features'] = len(numeric_cols) + len(categorical_cols)
-    metafeatures['num_missing_values'] = dataframe.isnull().sum().sum()
-    metafeatures['num_numeric_features'] = numeric_data.shape[1]
-    metafeatures['num_categorical_features'] = categorical_data.shape[1]
+    # metafeatures['num_instances'] = len(dataframe)
+    # metafeatures['num_features'] = len(numeric_cols) + len(categorical_cols)
+    # metafeatures['num_missing_values'] = dataframe.isnull().sum().sum()
+    # metafeatures['num_numeric_features'] = numeric_data.shape[1]
+    # metafeatures['num_categorical_features'] = categorical_data.shape[1]
 
     # Numerical Features' Metafeatures
     if not numeric_data.empty:
@@ -306,13 +306,13 @@ def compute_advanced_metafeatures(dataframe, numeric_cols, categorical_cols):
         # PCA Components for 95% variance
         scaler = StandardScaler()
         numeric_scaled = scaler.fit_transform(numeric_cols_imputed)
-        pca = PCA(n_components=0.95)
+        pca = PCA(n_components=0.90)
         pca.fit(numeric_scaled)
         metafeatures['pca_components_95_var'] = pca.n_components_
 
     # Categorical Features' Metafeatures
     if not categorical_data.empty:
-        metafeatures['min_categories'] = categorical_data.apply(lambda x: x.nunique()).min()
+        # metafeatures['min_categories'] = categorical_data.apply(lambda x: x.nunique()).min()
         metafeatures['max_categories'] = categorical_data.apply(lambda x: x.nunique()).max()
         metafeatures['mean_categories'] = categorical_data.apply(lambda x: x.nunique()).mean()
 
@@ -325,18 +325,51 @@ def compute_advanced_metafeatures(dataframe, numeric_cols, categorical_cols):
 
     return metafeatures   
 
+def calculate_confidence_and_support(sample_df,sensitive_attr,isGerman=False):
+        transactions = []
+        confidence_values = []
+        support_values = []
+        for index, row in sample_df.iterrows():
+            transaction = [f"{col}={val}" for col, val in row.items()]
+            transactions.append(transaction)
 
-def createMetaFeaturesDataframe(dfs,categorical_cols,numeric_columns,target_attr,sensitive_attr):
+        min_support_percentage = 0.3
+        targets = []
+        if isGerman:
+            targets = ['target=1', 'target=2']
+        else: 
+            targets = ['PINCP=False', 'PINCP=True']
+        target_frequent_itemsets, support_count = run_eclat(transactions, min_support_percentage,targets)
+
+        # Calculate confidence for each itemset
+        rules_with_confidence = calculate_confidence(target_frequent_itemsets, support_count,targets)
+
+    
+        # Iterate through the rules
+        confidence_value = []
+        support_value = []
+        for antecedent, consequent, support, confidence in rules_with_confidence:
+            if any(sensitive_attr in item for item in antecedent):  # Checking if 'SEX' is present in antecedent 
+                confidence_value.append(confidence)
+                support_value.append(support)
+                # print("Rule: {} -> {}, Support: {}, Confidence: {}".format(set(antecedent), set(consequent), support, confidence))
+                # print("-------------------------------------------")
+        mean_confidence = 0
+        mean_support = 0
+        if len(confidence_value)>0:
+            mean_confidence = sum(confidence_value)/len(confidence_value)
+        if len(support_value)>0:
+            mean_support = sum(support_value)/len(support_value)
+        
+        return [mean_confidence,mean_support]
+
+
+
+def createMetaFeaturesDataframe(dfs,categorical_cols,numeric_columns,target_attr,sensitive_attr,isGerman=False):
     metafeatures_df = pd.DataFrame()
     metafeatures_list = []
     for df in dfs:
         df = df.drop(target_attr,axis=1)
-        # numeric_columns = ['Duration']
-        # categorical_columns = ['Checking-Account','Credit-history', 'Purpose',
-        #     'Credit-amount', 'Savings-account', 'Present-employment',
-        #     'Installment-rate', 'Status/sex', 'Other-debtors', 'Present-residence',
-        #     'Property', 'Age', 'Other-installment', 'Housing', 'Existing-credits',
-        #     'Job', 'liable', 'Telephone', 'Foreign-worker']
         metafeatures = compute_advanced_metafeatures(df, numeric_columns, categorical_cols)
         metafeatures_list.append(metafeatures)
     metafeatures_df = pd.DataFrame(metafeatures_list)
@@ -347,8 +380,37 @@ def createMetaFeaturesDataframe(dfs,categorical_cols,numeric_columns,target_attr
         chi_squared_results.append(chi2)
     metafeatures_df['correlation'] = chi_squared_results
     parity_values = []
+    age_below_thres = []
+    prop_below_thres = []
+    confidence_values = []
+    support_values = []
     for df in dfs:
         parity_values.append(calculateParityusingLR(df,target_attr=target_attr,sensitive_attr=sensitive_attr))
+        confidence,support = calculate_confidence_and_support(df,sensitive_attr=sensitive_attr,isGerman=isGerman)
+        confidence_values.append(confidence)
+        support_values.append(support)
+        age_below_thes_val,_,_,prop_below_thes_val, _ = getStatsfromData(df,target_attr=target_attr,sensitive_attr=sensitive_attr)
+        age_below_thres.append(age_below_thes_val[0])
+        prop_below_thres.append(prop_below_thes_val[0])
+        
+
+    metafeatures_df['confidence'] = confidence_values
+    metafeatures_df['support'] = support_values
+    metafeatures_df['value_below_thres'] = age_below_thres
+    metafeatures_df['prop_below_thres'] = prop_below_thres
     metafeatures_df['target'] = parity_values
-    metafeatures_df.fillna(metafeatures_df.mean(), inplace=True)
+    
+    # metafeatures_df.fillna(metafeatures_df.mean(), inplace=True)
     return metafeatures_df
+
+def calculate_margins (y_test,predictions,CI=0.05):
+        total = 0.0
+        index = 0
+        for y in y_test:
+            if index < len(predictions):  # Ensure index doesn't exceed predictions length
+                if abs(y - predictions[index]) <= CI:
+                    total += 1
+            index += 1
+
+        percentage = (total / len(y_test)) * 100
+        print(percentage)
