@@ -414,3 +414,4 @@ def calculate_margins (y_test,predictions,CI=0.05):
 
         percentage = (total / len(y_test)) * 100
         print(percentage)
+        return percentage
