@@ -254,7 +254,6 @@ def getStatsfromData(sample_df,target_attr = 'target',sensitive_attr = 'Age'):
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
     logreg = LogisticRegression(max_iter=1000)
     logreg.fit(X_train, y_train)
-    y_pred = logreg.predict(X_test)
     y_pred_prob = logreg.predict_proba(X_test)
 
     first_values = [row[0] for row in y_pred_prob]
@@ -270,9 +269,9 @@ def getStatsfromData(sample_df,target_attr = 'target',sensitive_attr = 'Age'):
     parity.append(parity_diff)
     id+=1
 
-    total_age = sample_df[sensitive_attr].value_counts()[1] + sample_df[sensitive_attr].value_counts()[2]
-    prop_above_thres.append( sample_df[sensitive_attr].value_counts()[2]/total_age)
-    prop_below_thes.append(sample_df[sensitive_attr].value_counts()[1]/total_age)
+    total_age = sample_df[sensitive_attr].value_counts().get(1, 0) + sample_df[sensitive_attr].value_counts().get(2, 0)
+    prop_above_thres.append( sample_df[sensitive_attr].value_counts().get(2, 0) /total_age)
+    prop_below_thes.append(sample_df[sensitive_attr].value_counts().get(1, 0) /total_age)
     filtered_rows = sample_df[(sample_df[sensitive_attr] == 1) & (sample_df[target_attr] == 1)]
     total_rows = len(filtered_rows)
     filtered_rows = sample_df[(sample_df[sensitive_attr] == 2) & (sample_df[target_attr] == 1)]
